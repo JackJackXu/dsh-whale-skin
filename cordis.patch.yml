@@ -1,0 +1,14 @@
+# dsh-terminal-skin bundle patch: mounts the plugin into the host composition.
+# The plugin's whole feature lives in the browser half (client bundle);
+# the host half is a no-op loader entry that makes `dsh plugin add` recognize
+# this package as a bundle (dsh.bundle.patch) and lets client-modules pick up
+# its dsh.client declaration.
+#
+# Install: `dsh plugin --profile <name> add <this package>`.
+# The `dsh plugin` command pnpm-installs the package into the profile and
+# reconciles it into the profile's `dsh.profile.bundles` layer list.
+- insert:
+    - id: terminal-skin
+      # Node-resolvable package name — must stay in sync with package.json
+      # `name`.
+      name: 'dsh-terminal-skin'
