@@ -1,9 +1,9 @@
 /**
- * whale.ts — pixel whale sprite (user-drawn 16x16 square, v2 with black
- * outline + bright blue body, extracted from bead-pattern (1).png).
+ * whale.ts — pixel whale sprite (user-drawn 16x16, typed in directly).
  *
  * 16 rows of characters; palette: K=black outline/water, B=bright blue body,
  * L=light belly, W=white mouth, .=transparent.
+ * Source (user text): A=transparent, B=black, C=blue, D=light blue.
  */
 
 export const SPRITE: readonly string[] = [
@@ -19,10 +19,10 @@ export const SPRITE: readonly string[] = [
   'KBKBBBKBBBBBBBBK',
   'KBKBBBKBBBBBBBBK',
   'KBBBBBBBBBBBBBK.',
-  'KBwwwwwBBBBKBK..',
-  'KLwwwwwwLKBBK...',
+  'KB.....BBBBKBBK.',
+  'KL......LKBBKBK.',
   '.KLLLLLLLKKBBK..',
-  '..KKKKKKKLLKKLLL',
+  '..KKKKKKK..KK...',
 ]
 
 const PALETTE: Record<string, string> = {
