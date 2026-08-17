@@ -2,9 +2,15 @@
 
 DSH web 皮肤。**颜色和字体全部保持用户默认主题**（亮/暗随系统、字体不干预），皮肤只做终端风格的**布局**。GUI 控件全部保持可点击。
 
+## 设计原则
+
+1. **不干预颜色/字体**：跟随用户默认主题（不强制暗色、不指定字体），只改布局与局部装饰色
+2. **尊重 dsh 交互**：不改任何控件的功能，只换外观
+3. **已知问题透明记录**：见 `ISSUES.md`
+
 ## 功能
 
-- **终端风布局**（CSS 注入，颜色/字体回默认主题，不强制暗色）
+- **终端风布局**（CSS 注入，颜色/字体回默认主题）
   - 全直角（`border-radius: 0`）
   - 消息行、用户气泡、输入框、时间栏、产物行的**统一对齐轴线**：文字 56px / 色块 44px / 提示符 `>` 在列左缘
   - 用户消息 = 左对齐蓝底块（`>` 提示符在色块外，独立蓝色箭头）
@@ -20,6 +26,20 @@ DSH web 皮肤。**颜色和字体全部保持用户默认主题**（亮/暗随�
 - **像素鲸鱼**：会话列表下方、设置按钮上方（用户手绘 1:1 图提取）
 - **token 统计栏**（已整合原 stats-widen 插件功能）：不截断、可换行
 
+## 架构
+
+```
+src/
+├── index.ts          # host 半部（no-op loader entry，注册插件）
+└── client/
+    ├── index.ts      # 浏览器入口：注入样式 / 鲸鱼 / 底栏 / 宽度切换
+    └── whale.ts      # 像素鲸鱼 sprite + html 渲染（纯静态常量，无 XSS）
+```
+
+**浏览器端加载链**：DSH 的 `dsh-client-modules` 读取 package.json 的 `dsh.client` 声明 → 加载 `lib/client.js`（bundle）→ 调用 `apply(ctx)` → 注入 `<style>` + 鲸鱼 DOM + 底栏 MutationObserver + 宽度切换按钮。
+
+**固定底栏的实现（重要）**：dsh 的输入卡片（`[data-composer-card]`）随对话流滚动，但工具栏行 + token 统计栏需要钉在底部。CSS `position: sticky` 无法钉住（seat 的父容器在流末尾），所以用 `fixBottomBar()` 把 `.row` 和 dock **物理移入** `#dsh-whale-bottombar`（`[data-phase]` 的普通 flex 子元素，插在滚动区之后），再靠 MutationObserver 在 React 重渲染后重新固定。⚠️ 已知副作用：物理移动含 `Menu` 弹窗的 DOM 会破坏弹窗定位（见 `ISSUES.md`）。
+
 ## Build
 
 ```bash
@@ -28,8 +48,13 @@ npm run build     # tsc (host) + tsc (client) + tsdown (client bundle)
 ```
 
 输出 `lib/index.js`（host 半部）与 `lib/client.js`（浏览器 bundle）。
-沙箱受限环境可用 `node build-client.cjs` 生成 `lib/client.js`（格式与 tsdown 等价）。
+沙箱受限环境可用 `node build-client.cjs` 生成 `lib/client.js`（格式与 tsdown 等价；内含导出残留检查，构建期失败而非运行时崩溃）。
 `lib/` 已提交进 git，GitHub 安装无需本机构建。
+
+**改源码后的流程**：
+1. `node build-client.cjs` 重建 `lib/client.js`
+2. `npm run typecheck` 类型检查
+3. 提交 `src/` 和 `lib/`（两者都要，GitHub 安装用的是 `lib/`）
 
 ## Install
 
@@ -42,23 +67,20 @@ dsh plugin --profile web add github:JackJackXu/dsh-whale-skin
 开发态（改源码时）：先 `node build-client.cjs` 重建 `lib/client.js`，然后：
 
 ```bash
-dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-terminal-skin"
+dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-whale-skin"
 ```
+
 重启 dsh profile 生效。
+
+## 兼容性
+
+- 目标：DSH `0.1.0-rc.x`（当前开发于 rc.6）
+- ⚠️ 皮肤依赖 dsh 内部 DOM 结构（`data-composer-*`、class 后缀等）。**dsh 升级前端重构后需回归测试**——失效通常"看起来正常但某功能悄悄坏"
 
 ## 已知问题
 
-- 底部工具栏「选择模型 / 选择权限」弹窗透明且点不上（见 `ISSUES.md`）。
+- 底部工具栏「选择模型 / 选择权限」弹窗透明且点不上（根因+修复方向见 `ISSUES.md`）
 
-## 结构
+## License
 
-```
-src/
-├── index.ts          # host 半部（no-op loader entry）
-└── client/
-    ├── index.ts      # 浏览器入口：注入样式/鲸鱼/底栏/宽度切换
-    └── whale.ts      # 像素鲸鱼 sprite + html 渲染
-tsdown.config.ts      # client bundle 协议（对应 tsdown.client.ts）
-build-client.cjs      # 受限环境下的 lib/client.js 生成器
-ISSUES.md             # 已知问题清单
-```
+MIT（见 [LICENSE](LICENSE)）

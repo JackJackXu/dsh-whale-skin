@@ -9,7 +9,7 @@
  *   slot (token stats).
  *
  * This skin:
- *  - square corners, monospace, mist-blue accents;
+ *  - square corners, mist-blue accents (fonts untouched — user's default);
  *  - the conversation flows like a terminal: message rows + the input line
  *    scroll together (seat forced static);
  *  - the toolbar row and the token stats are MOVED into a fixed bottom bar
@@ -233,6 +233,11 @@ function startBottomBarWatch(): void {
     // Re-apply the persisted content-width (the conversation root may not
     // exist when apply() first ran; also catches React remounts).
     applyWidthMode()
+    // Re-inject the whale and the width toggle if a React remount dropped
+    // them (both guards on getElementById internally, so this is a no-op
+    // while they are still present).
+    injectWhale()
+    injectWidthToggle()
   })
   observer.observe(document.body, { childList: true, subtree: true })
   fixBottomBar()
@@ -268,21 +273,19 @@ function injectWhale(): void {
 }
 
 // ── content width toggle: centered (default) vs full-bleed ─────────────────
-// ONE design axis: messages, input and bottom bar all resolve against the
-// same column width, so the toggle only changes how much side whitespace
-// remains, never the per-column alignment. The three variables differ in
-// wide mode because their 100% resolves against different parents:
+// ONE design axis: messages and input resolve against the same column width,
+// so the toggle only changes how much side whitespace remains, never the
+// per-column alignment. The two variables differ in wide mode because their
+// 100% resolves against different parents:
 //   --dsh-chat-content-width  (message column; 100% = scroll content, V-64)
 //   --dsh-whale-input-width (input card; 100% = composer root content, V-32)
-//   --dsh-whale-bar-width   (bottom bar; 100% = the full [data-phase], V)
-// In wide mode each is tuned so the resulting box is exactly V-64 wide and
-// its left edge lands at 32px, flush with the message column.
+// The bottom bar's inner column reuses --dsh-chat-content-width (its 32px
+// side padding + centered max-width lands flush with the message column).
 // Persisted in localStorage; flipped on the conversation root ([data-phase]).
 const WIDTH_KEY = 'dsh-whale-content-width'
 const WIDTH_CENTER = '748px'
 const WIDTH_WIDE = '100%' // column: fill the scroll content area
 const INPUT_WIDE = 'calc(100% - 32px)' // card: fill scroll area minus root pads
-const BAR_WIDE = 'calc(100% - 64px)' // bar: full root minus both side clearances
 
 function getStoredWidthMode(): string {
   try { return localStorage.getItem(WIDTH_KEY) === 'wide' ? 'wide' : 'center' } catch { return 'center' }
@@ -295,7 +298,6 @@ function applyWidthMode(): void {
   const el = root as HTMLElement
   el.style.setProperty('--dsh-chat-content-width', mode === 'wide' ? WIDTH_WIDE : WIDTH_CENTER)
   el.style.setProperty('--dsh-whale-input-width', mode === 'wide' ? INPUT_WIDE : WIDTH_CENTER)
-  el.style.setProperty('--dsh-whale-bar-width', mode === 'wide' ? BAR_WIDE : WIDTH_CENTER)
 }
 
 function injectWidthToggle(): void {

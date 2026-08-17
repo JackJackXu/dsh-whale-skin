@@ -9,7 +9,7 @@
  *   slot (token stats).
  *
  * This skin:
- *  - square corners, monospace, mist-blue accents;
+ *  - square corners, mist-blue accents (fonts untouched — user's default);
  *  - the conversation flows like a terminal: message rows + the input line
  *    scroll together (seat forced static);
  *  - the toolbar row and the token stats are MOVED into a fixed bottom bar

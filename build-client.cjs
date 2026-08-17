@@ -20,23 +20,39 @@ function read(name) {
 }
 
 /** 把单个 ESM 模块体转成闭包内定义（去掉 import/export 外壳）。 */
-function toClosure(src) {
-  return src
+function toClosure(src, label) {
+  const out = src
     .replace(/^import .*;$/gm, '')
     .replace(/^export const /gm, 'const ')
     .replace(/^export function /gm, 'function ')
     .replace(/^export \{[\s\S]*?\};$/gm, '')
     .trim();
+  // Fail loud instead of shipping a "looks fine, breaks at runtime" bundle:
+  // tsc's emit shape changing (e.g. a multi-line import) must surface here,
+  // not as a broken skin in production.
+  const leftovers = [...out.matchAll(/^(?:import|export)[\s{*]/gm)].map(m => m[0]);
+  if (leftovers.length > 0) {
+    throw new Error(`${label}: unhandled ESM syntax after strip — ${leftovers.join(' | ')}`);
+  }
+  return out;
 }
 
 // NOTE: theme.js is intentionally NOT bundled anymore — the mist-terminal
 // theme was removed (whale skin only). Bundling a stale lib/client/theme.js
 // left the removed MIST_TERMINAL definition and a dangling `inject` export in
 // the bundle, which broke plugin loading with "inject is not defined".
-const whale = toClosure(read('whale.js'));
-const index = toClosure(read('index.js'));
+const whale = toClosure(read('whale.js'), 'whale.js');
+const index = toClosure(read('index.js'), 'index.js');
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+
+// The bundle's module.exports references these by name; assert they exist so
+// a renamed/removed export fails the build instead of shipping a ReferenceError.
+for (const required of ['name', 'apply']) {
+  if (!new RegExp(`\\b${required}\\b`).test(index)) {
+    throw new Error(`index.js: required export "${required}" not found — bundle would throw at load`);
+  }
+}
 
 const bundle = `window.__ModuleLoader__.load({ id: ${JSON.stringify(pkg.name)}, factory: (require) => {
 var module = { exports: {} };
