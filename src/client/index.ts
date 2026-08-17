@@ -18,17 +18,9 @@
  *  - the user-drawn 1:1 whale sits at the top of the sidebar.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-// Module-loading type import: pulls in the Context.theme declaration merge
-// from the theme client package (erased at compile time, so the client
-// bundle stays free of cross-plugin value imports).
-import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
-import { MIST_TERMINAL } from './theme.js'
 import { whaleHtml } from './whale.js'
 
 export const name = 'terminal-skin'
-
-/** Required services: the theme runtime. */
-export const inject = ['theme']
 
 /** Refined terminal element styles injected via a <style> tag. */
 // Style note: the skin is aggressively square (the very first rule zeroes
@@ -335,17 +327,11 @@ function injectWidthToggle(): void {
 }
 
 export function apply(ctx: ClientContext): void {
-  // 1. Register the mist-terminal skin (switchable in DSH settings). It is NOT
-  //    force-applied: the palette (dark mist blue) clashes with a light system,
-  //    so colours stay on the user's default theme. Only the monospace font is
-  //    injected unconditionally below (body-level !important beats the theme
-  //    presenter's inline token).
-  ctx.theme.register(MIST_TERMINAL)
-  // 2. Inject terminal element styles and the pixel whale.
+  // 1. Inject terminal element styles and the pixel whale.
   injectStyle()
   injectWhale()
   injectWidthToggle()
   applyWidthMode()
-  // 3. Keep the persisted width and the bottom-bar pinning in sync.
+  // 2. Keep the persisted width and the bottom-bar pinning in sync.
   startBottomBarWatch()
 }

@@ -49,8 +49,7 @@ dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-termi
 src/
 ├── index.ts          # host 半部（no-op loader entry）
 └── client/
-    ├── index.ts      # 浏览器入口：注册主题 + 注入样式/鲸鱼/底栏/宽度切换
-    ├── theme.ts      # mist-terminal --dsw-* tokens（可选主题，不默认启用）
+    ├── index.ts      # 浏览器入口：注入样式/鲸鱼/底栏/宽度切换
     └── whale.ts      # 像素鲸鱼 sprite + html 渲染
 tsdown.config.ts      # client bundle 协议（对应 tsdown.client.ts）
 build-client.cjs      # 受限环境下的 lib/client.js 生成器
