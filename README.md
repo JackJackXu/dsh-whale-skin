@@ -1,10 +1,10 @@
-# dsh-terminal-skin
+# dsh-whale-skin
 
-DSH web 皮肤。**颜色保持用户默认主题**（亮/暗随系统），皮肤只做两件事：终端风格的**布局**和**等宽字体**。GUI 控件全部保持可点击。
+DSH web 皮肤。**颜色和字体全部保持用户默认主题**（亮/暗随系统、字体不干预），皮肤只做终端风格的**布局**。GUI 控件全部保持可点击。
 
 ## 功能
 
-- **终端风布局**（CSS 注入，颜色回默认主题，不强制暗色）
+- **终端风布局**（CSS 注入，颜色/字体回默认主题，不强制暗色）
   - 全直角（`border-radius: 0`）
   - 消息行、用户气泡、输入框、时间栏、产物行的**统一对齐轴线**：文字 56px / 色块 44px / 提示符 `>` 在列左缘
   - 用户消息 = 左对齐蓝底块（`>` 提示符在色块外，独立蓝色箭头）
@@ -12,10 +12,6 @@ DSH web 皮肤。**颜色保持用户默认主题**（亮/暗随系统），皮�
   - 产物文件行 + 时间栏 = 一整块灰卡
   - 输入框 = 随内容长高的无滚动条块（无高度上限）
   - 时间戳常显、复制键与时间顺序统一
-- **等宽字体**（仅字体，颜色不干预）
-  - 英文/代码：Consolas（系统唯一实际安装的经典等宽；Cascadia Mono 仅作为备选，Windows 本地未安装时自动跳过）
-  - 中文：Noto Sans SC（浏览器默认现代中文字体；不指定会回退成宋体）
-  - 正文与代码块两个字体变量都覆盖（`--dsw-font-family` / `--ds-font-family-code`）
 - **固定底栏**（DOM 操作 + MutationObserver）
   - 按钮行 + token 统计信息栏从滚动流移出，固定在底部，宽度与输入卡片对齐
   - 分割线保持与消息分隔线等宽
@@ -33,15 +29,26 @@ npm run build     # tsc (host) + tsc (client) + tsdown (client bundle)
 
 输出 `lib/index.js`（host 半部）与 `lib/client.js`（浏览器 bundle）。
 沙箱受限环境可用 `node build-client.cjs` 生成 `lib/client.js`（格式与 tsdown 等价）。
+`lib/` 已提交进 git，GitHub 安装无需本机构建。
 
 ## Install
 
+GitHub 正式安装（推荐，与仓库同步）：
+
 ```bash
-dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-terminal-skin"
-# 重启 dsh profile 生效
+dsh plugin --profile web add github:JackJackXu/dsh-whale-skin
 ```
 
-开发态用 `link:` 安装：改 `lib/client.js` 后刷新页面即生效，无需重装。
+开发态（改源码时）：先 `node build-client.cjs` 重建 `lib/client.js`，然后：
+
+```bash
+dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-terminal-skin"
+```
+重启 dsh profile 生效。
+
+## 已知问题
+
+- 底部工具栏「选择模型 / 选择权限」弹窗透明且点不上（见 `ISSUES.md`）。
 
 ## 结构
 
@@ -53,4 +60,5 @@ src/
     └── whale.ts      # 像素鲸鱼 sprite + html 渲染
 tsdown.config.ts      # client bundle 协议（对应 tsdown.client.ts）
 build-client.cjs      # 受限环境下的 lib/client.js 生成器
+ISSUES.md             # 已知问题清单
 ```

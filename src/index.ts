@@ -1,5 +1,5 @@
 /**
- * dsh-terminal-skin — host half.
+ * dsh-whale-skin — host half.
  *
  * The host side is intentionally a no-op loader entry: the whole feature
  * lives in the browser half (`./client`), which DSH's dsh-client-modules
@@ -7,7 +7,7 @@
  * as the shipped ui-* packages.
  */
 
-export const name = 'terminal-skin'
+export const name = 'whale-skin'
 
 /** Host loader entry; no host-side behaviour. */
 export function apply(): void {

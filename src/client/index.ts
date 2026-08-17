@@ -1,7 +1,7 @@
 /**
- * index.ts — dsh-terminal-skin browser half (redesigned).
+ * index.ts — dsh-whale-skin browser half (redesigned).
  *
- * Mist-blue terminal skin. Layout intent (from ui-conversation source):
+ * Terminal-style skin. Layout intent (from ui-conversation source):
  *   ConversationRoot: header (fixed) / scrollBody[data-conversation-scroll]
  *   (scrolls) / composerSeat inside scrollBody (sticky by default).
  *   InputBar inside the seat: card[data-composer-card] > scroll
@@ -20,7 +20,7 @@
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { whaleHtml } from './whale.js'
 
-export const name = 'terminal-skin'
+export const name = 'whale-skin'
 
 /** Refined terminal element styles injected via a <style> tag. */
 // Style note: the skin is aggressively square (the very first rule zeroes
@@ -69,7 +69,7 @@ const TERMINAL_CSS = [
   // the blue at the 44px block axis (matching the bubbles), right 0 lets it
   // run to the column edge (the message text also ends there), and the grow
   // text adds its own 12px left padding, landing on the 56px text column.
-  '[data-composer-card] { border: none !important; background: rgba(125, 161, 222, 0.14) !important; background-clip: content-box !important; box-shadow: none !important; padding: 6px 0 6px 12px !important; max-width: var(--dsh-terminal-input-width) !important; }',
+  '[data-composer-card] { border: none !important; background: rgba(125, 161, 222, 0.14) !important; background-clip: content-box !important; box-shadow: none !important; padding: 6px 0 6px 12px !important; max-width: var(--dsh-whale-input-width) !important; }',
   // No scrollbar and no height cap: the draft grows with its content (dsh
   // caps at 132px by default; the flow already scrolls the whole page).
   '[data-composer-card] [data-input-scroll] { max-height: none !important; overflow-y: visible !important; }',
@@ -101,9 +101,9 @@ const TERMINAL_CSS = [
   // scroll padding, so the inner column (max-width: --dsh-chat-content-width,
   // auto margins) centres on exactly the message column axis; the row's 24px
   // side padding puts the first button at the 24px text inset.
-  '#dsh-terminal-bottombar { flex: none; background: var(--dsw-alias-bg-base); border-top: 1px solid rgba(125, 161, 222, 0.15); padding: 2px 32px 0; }',
-  '#dsh-terminal-bottombar [class$="_row"] { position: static !important; background: none !important; max-width: var(--dsh-chat-content-width) !important; margin: 0 auto !important; padding: 2px 24px 4px !important; }',
-  '#dsh-terminal-bottombar [data-slot="conversation.composer.dock"] { position: static !important; background: none !important; max-width: var(--dsh-chat-content-width) !important; margin: 0 auto !important; padding: 0 24px 4px !important; }',
+  '#dsh-whale-bottombar { flex: none; background: var(--dsw-alias-bg-base); border-top: 1px solid rgba(125, 161, 222, 0.15); padding: 2px 32px 0; }',
+  '#dsh-whale-bottombar [class$="_row"] { position: static !important; background: none !important; max-width: var(--dsh-chat-content-width) !important; margin: 0 auto !important; padding: 2px 24px 4px !important; }',
+  '#dsh-whale-bottombar [data-slot="conversation.composer.dock"] { position: static !important; background: none !important; max-width: var(--dsh-chat-content-width) !important; margin: 0 auto !important; padding: 0 24px 4px !important; }',
   // Token stats row (merged from the stats-widen plugin): StatsLine caps at
   // the content width with nowrap + ellipsis, so long lines get cut; let it
   // wrap instead.
@@ -115,13 +115,13 @@ const TERMINAL_CSS = [
   '*::-webkit-scrollbar-thumb { background: #343945; border: 2px solid #22262E; }',
   '*::-webkit-scrollbar-thumb:hover { background: #454D59; }',
   // ── whale host (above the sidebar foot, left-aligned) ────────────────────
-  '.dsh-terminal-whale { display: inline-block; line-height: 0; opacity: 0.92; }',
-  '.dsh-terminal-whale-host { display: flex; justify-content: flex-start; padding: 12px 0 6px 12px; }',
+  '.dsh-whale-whale { display: inline-block; line-height: 0; opacity: 0.92; }',
+  '.dsh-whale-whale-host { display: flex; justify-content: flex-start; padding: 12px 0 6px 12px; }',
   // ── width toggle button (top-right header, capsule like Session log) ─────
   // The capsule outline survives via border-color only; the global square rule
   // makes the pill square, which is the terminal look.
-  '#dsh-terminal-width-toggle { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 6px 12px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-primary); background: transparent; font-size: 13px; line-height: 20px; cursor: pointer; white-space: nowrap; }',
-  '#dsh-terminal-width-toggle:hover { background: var(--dsw-alias-interactive-bg-hover); color: #7DA1DE; }',
+  '#dsh-whale-width-toggle { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 6px 12px; border: 1px solid var(--dsw-alias-border-l2); color: var(--dsw-alias-label-primary); background: transparent; font-size: 13px; line-height: 20px; cursor: pointer; white-space: nowrap; }',
+  '#dsh-whale-width-toggle:hover { background: var(--dsw-alias-interactive-bg-hover); color: #7DA1DE; }',
   // ── message chrome: always-visible timestamps + user actions order ───────
   // dsh hides timestamps under hover (data-time-hover-root opacity 0); force
   // them visible. User messages use clock="start" (time left, copy right);
@@ -192,9 +192,9 @@ const TERMINAL_CSS = [
 ].join('\n')
 
 function injectStyle(): void {
-  if (document.getElementById('dsh-terminal-skin-style')) return
+  if (document.getElementById('dsh-whale-skin-style')) return
   const el = document.createElement('style')
-  el.id = 'dsh-terminal-skin-style'
+  el.id = 'dsh-whale-skin-style'
   el.textContent = TERMINAL_CSS
   document.head.appendChild(el)
 }
@@ -212,7 +212,7 @@ function fixBottomBar(): void {
   if (!root || !scroll) return
   if (!bottomBar || !document.body.contains(bottomBar)) {
     bottomBar = document.createElement('div')
-    bottomBar.id = 'dsh-terminal-bottombar'
+    bottomBar.id = 'dsh-whale-bottombar'
     // Insert AFTER the scrollBody so the bar is the last flex child of the
     // column: the scroll area ends above it and its scrollbar is never
     // covered by the bar.
@@ -242,10 +242,10 @@ function startBottomBarWatch(): void {
 // (settings button): the root is a fixed-height column whose foot would be
 // pushed out of view if the whale sat above the logo row.
 function injectWhale(): void {
-  if (document.getElementById('dsh-terminal-whale-host')) return
+  if (document.getElementById('dsh-whale-whale-host')) return
   const host = document.createElement('div')
-  host.id = 'dsh-terminal-whale-host'
-  host.className = 'dsh-terminal-whale-host'
+  host.id = 'dsh-whale-whale-host'
+  host.className = 'dsh-whale-whale-host'
   host.innerHTML = whaleHtml(5) // 16 cols x 5px = 80px wide
 
   const tryInject = (): boolean => {
@@ -273,12 +273,12 @@ function injectWhale(): void {
 // remains, never the per-column alignment. The three variables differ in
 // wide mode because their 100% resolves against different parents:
 //   --dsh-chat-content-width  (message column; 100% = scroll content, V-64)
-//   --dsh-terminal-input-width (input card; 100% = composer root content, V-32)
-//   --dsh-terminal-bar-width   (bottom bar; 100% = the full [data-phase], V)
+//   --dsh-whale-input-width (input card; 100% = composer root content, V-32)
+//   --dsh-whale-bar-width   (bottom bar; 100% = the full [data-phase], V)
 // In wide mode each is tuned so the resulting box is exactly V-64 wide and
 // its left edge lands at 32px, flush with the message column.
 // Persisted in localStorage; flipped on the conversation root ([data-phase]).
-const WIDTH_KEY = 'dsh-terminal-content-width'
+const WIDTH_KEY = 'dsh-whale-content-width'
 const WIDTH_CENTER = '748px'
 const WIDTH_WIDE = '100%' // column: fill the scroll content area
 const INPUT_WIDE = 'calc(100% - 32px)' // card: fill scroll area minus root pads
@@ -294,18 +294,18 @@ function applyWidthMode(): void {
   const mode = getStoredWidthMode()
   const el = root as HTMLElement
   el.style.setProperty('--dsh-chat-content-width', mode === 'wide' ? WIDTH_WIDE : WIDTH_CENTER)
-  el.style.setProperty('--dsh-terminal-input-width', mode === 'wide' ? INPUT_WIDE : WIDTH_CENTER)
-  el.style.setProperty('--dsh-terminal-bar-width', mode === 'wide' ? BAR_WIDE : WIDTH_CENTER)
+  el.style.setProperty('--dsh-whale-input-width', mode === 'wide' ? INPUT_WIDE : WIDTH_CENTER)
+  el.style.setProperty('--dsh-whale-bar-width', mode === 'wide' ? BAR_WIDE : WIDTH_CENTER)
 }
 
 function injectWidthToggle(): void {
-  if (document.getElementById('dsh-terminal-width-toggle')) return
+  if (document.getElementById('dsh-whale-width-toggle')) return
   const make = (): boolean => {
     // Top-right header utilities, next to the session-log download button.
     const utils = document.querySelector('[class$="_headerUtilities"]')
     if (!utils) return false
     const btn = document.createElement('button')
-    btn.id = 'dsh-terminal-width-toggle'
+    btn.id = 'dsh-whale-width-toggle'
     btn.title = '切换内容宽度：居中 / 占满'
     btn.textContent = getStoredWidthMode() === 'wide' ? '占满' : '居中'
     btn.addEventListener('click', () => {

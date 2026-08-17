@@ -1,7 +1,7 @@
 {
-  "name": "dsh-terminal-skin",
+  "name": "dsh-whale-skin",
   "version": "0.1.0",
-  "description": "DSH web skin: Claude-Code-style terminal look (mist blue + pixel whale). GUI controls stay clickable.",
+  "description": "DSH web skin: terminal-style layout (mist blue + pixel whale). Colors/fonts follow the user's default theme.",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -33,8 +33,7 @@
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-theme"
+        "@deepseek-ai/dsh-client-runtime"
       ],
       "platform": "web",
       "immediately": true

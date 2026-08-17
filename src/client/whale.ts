@@ -44,5 +44,5 @@ export function whaleHtml(scale = 4): string {
     }).join('') +
     '</div>',
   ).join('')
-  return '<div class="dsh-terminal-whale" style="display:inline-block;line-height:0">' + rows + '</div>'
+  return '<div class="dsh-whale-whale" style="display:inline-block;line-height:0">' + rows + '</div>'
 }

@@ -1,7 +1,7 @@
 /**
- * index.ts — dsh-terminal-skin browser half (redesigned).
+ * index.ts — dsh-whale-skin browser half (redesigned).
  *
- * Mist-blue terminal skin. Layout intent (from ui-conversation source):
+ * Terminal-style skin. Layout intent (from ui-conversation source):
  *   ConversationRoot: header (fixed) / scrollBody[data-conversation-scroll]
  *   (scrolls) / composerSeat inside scrollBody (sticky by default).
  *   InputBar inside the seat: card[data-composer-card] > scroll
@@ -18,5 +18,5 @@
  *  - the user-drawn 1:1 whale sits at the top of the sidebar.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
-export declare const name = "terminal-skin";
+export declare const name = "whale-skin";
 export declare function apply(ctx: ClientContext): void;
