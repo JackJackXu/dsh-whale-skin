@@ -43,7 +43,9 @@ function toClosure(src, label) {
 // theme was removed (whale skin only). Bundling a stale lib/client/theme.js
 // left the removed MIST_TERMINAL definition and a dangling `inject` export in
 // the bundle, which broke plugin loading with "inject is not defined".
+// Order matters: style.js (scopeRule) must be defined BEFORE index.js uses it.
 const whale = toClosure(read('whale.js'), 'whale.js');
+const style = toClosure(read('style.js'), 'style.js');
 const index = toClosure(read('index.js'), 'index.js');
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -55,12 +57,18 @@ for (const required of ['name', 'apply']) {
     throw new Error(`index.js: required export "${required}" not found — bundle would throw at load`);
   }
 }
+// index.js calls scopeRule as a callback (`.map(scopeRule)`) imported from
+// style.js: the closure must actually contain it, or the bundle throws
+// ReferenceError on load.
+if (!/\bscopeRule\b/.test(index) || !/function scopeRule/.test(style)) {
+  throw new Error('index.js uses scopeRule but style.js was not bundled — bundle would throw at load');
+}
 
 const bundle = `${banner(pkg.name)}
 ${intro}
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
-${[whale, index].join('\n\n')}
+${[whale, style, index].join('\n\n')}
 
 module.exports = { name, apply };
 ${footer}
