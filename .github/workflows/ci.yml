@@ -27,6 +27,11 @@ jobs:
       # matches it exactly: `git diff --exit-code` fails if the build left any
       # uncommitted change (a stale bundle, a stray .map). This is the guard
       # against "source and committed bundle drift apart".
+      #
+      # The diff is scoped to lib/: `npm install` legitimately rewrites
+      # package-lock.json per platform (optional native-binding entries for
+      # win32/linux/… differ), so a whole-tree diff would always fail on the
+      # Linux runner. lib/ output itself is platform-independent.
       - run: npm run build
       - run: node --check lib/client.js
-      - run: git diff --exit-code
+      - run: git diff --exit-code -- lib/
