@@ -19,4 +19,5 @@
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
 export declare const name = "whale-skin";
-export declare function apply(ctx: ClientContext): void;
+export declare function dispose(): void;
+export declare function apply(ctx: ClientContext): () => void;

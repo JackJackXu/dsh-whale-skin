@@ -264,9 +264,12 @@ function fixBottomBar(): void {
   // cost-meter) would otherwise render an empty bar. Children other than text
   // count as content; whitespace-only text does not.
   const dock = seat.querySelector(SELECTORS.dock)
-  if (dock && dock.parentNode !== bottomBar) {
+  if (dock) {
     const hasContent = dock.children.length > 0 || (dock.textContent || '').trim() !== ''
-    if (hasContent) bottomBar.appendChild(dock)
+    if (hasContent && dock.parentNode !== bottomBar) bottomBar.appendChild(dock)
+    // Dock emptied after being moved in (e.g. cost-meter disabled): move it
+    // back so a bare slot does not leave an empty bar behind.
+    else if (!hasContent && dock.parentNode === bottomBar) seat.appendChild(dock)
   }
 }
 
@@ -313,6 +316,12 @@ let whalePending = false
 let whaleGaveUp = false
 let togglePending = false
 let toggleGaveUp = false
+// Retry-loop timer handles, module-level so dispose() can stop them. The fast
+// loop self-cleans on success; the slow loop lives until the target appears.
+let whaleFastTimer: ReturnType<typeof setInterval> | undefined
+let whaleSlowTimer: ReturnType<typeof setInterval> | undefined
+let toggleFastTimer: ReturnType<typeof setInterval> | undefined
+let toggleSlowTimer: ReturnType<typeof setInterval> | undefined
 
 function injectWhale(): void {
   if (document.getElementById('dsh-whale-whale-host')) return
@@ -339,16 +348,17 @@ function injectWhale(): void {
     // slow disk) still gets the whale — never a permanent dead-end.
     whalePending = true
     let tries = 0
-    const fast = setInterval(() => {
+    whaleFastTimer = setInterval(() => {
       tries++
-      if (tryInject()) { clearInterval(fast); return }
+      if (tryInject()) { clearInterval(whaleFastTimer); whaleFastTimer = undefined; return }
       if (tries >= 40) {
-        clearInterval(fast)
+        clearInterval(whaleFastTimer)
+        whaleFastTimer = undefined
         whalePending = false
         whaleGaveUp = true
         // Slow re-arm: keep probing every 5s; when the target appears, inject.
-        const slow = setInterval(() => {
-          if (tryInject()) clearInterval(slow)
+        whaleSlowTimer = setInterval(() => {
+          if (tryInject()) { clearInterval(whaleSlowTimer); whaleSlowTimer = undefined; }
         }, 5000)
       }
     }, 500)
@@ -436,23 +446,41 @@ function injectWidthToggle(): void {
   if (!make()) {
     togglePending = true
     let tries = 0
-    const iv = setInterval(() => {
+    toggleFastTimer = setInterval(() => {
       tries++
-      if (make()) { clearInterval(iv); return }
+      if (make()) { clearInterval(toggleFastTimer); toggleFastTimer = undefined; return }
       if (tries >= 40) {
         togglePending = false
         toggleGaveUp = true
-        clearInterval(iv)
+        clearInterval(toggleFastTimer)
+        toggleFastTimer = undefined
         // Slow re-arm for slow cold starts: keep probing every 5s.
-        const slow = setInterval(() => {
-          if (make()) clearInterval(slow)
+        toggleSlowTimer = setInterval(() => {
+          if (make()) { clearInterval(toggleSlowTimer); toggleSlowTimer = undefined; }
         }, 5000)
       }
     }, 500)
   }
 }
 
-export function apply(ctx: ClientContext): void {
+// ── dispose ────────────────────────────────────────────────────────────────
+// Returned from apply() so the host can undo the skin when the plugin is
+// unloaded/reloaded. The moved bottombar row/dock are LEFT where they are:
+// React re-renders restore them to the seat, and an empty unstyled bar div is
+// invisible — undoing the move would need DOM archaeology for zero gain.
+export function dispose(): void {
+  if (observer) { observer.disconnect(); observer = null; }
+  if (whaleFastTimer) { clearInterval(whaleFastTimer); whaleFastTimer = undefined; }
+  if (whaleSlowTimer) { clearInterval(whaleSlowTimer); whaleSlowTimer = undefined; }
+  if (toggleFastTimer) { clearInterval(toggleFastTimer); toggleFastTimer = undefined; }
+  if (toggleSlowTimer) { clearInterval(toggleSlowTimer); toggleSlowTimer = undefined; }
+  document.getElementById('dsh-whale-skin-style')?.remove()
+  document.getElementById('dsh-whale-whale-host')?.remove()
+  document.getElementById('dsh-whale-width-toggle')?.remove()
+  document.body.removeAttribute('data-skin')
+}
+
+export function apply(ctx: ClientContext): () => void {
   // Mark the skin as active: every TERMINAL_CSS rule is scoped under this
   // attribute so the skin never bleeds into other plugins' UI.
   document.body.setAttribute('data-skin', 'whale')
@@ -464,4 +492,5 @@ export function apply(ctx: ClientContext): void {
   // 2. Keep the persisted width and the bottom-bar pinning in sync. The first
   // observer callback also runs assertSelectors (after the SPA has rendered).
   startBottomBarWatch()
+  return dispose
 }

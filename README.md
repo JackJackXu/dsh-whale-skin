@@ -46,17 +46,18 @@ src/
 
 ```bash
 npm install
-npm run build     # tsc (host) + tsc (client) + tsdown (client bundle)
+npm run build     # tsc (host) + tsc (client) + tsdown (client bundle) — 唯一权威路径
+npm test          # scopeRule 单测 + bundle 冒烟（加载并执行 lib/client.js 的 apply/dispose）
 ```
 
-输出 `lib/index.js`（host 半部）与 `lib/client.js`（浏览器 bundle）。
-沙箱受限环境可用 `node build-client.cjs` 生成 `lib/client.js`（协议外壳与 tsdown 一致、代码体行为等价；内含导出残留检查与 `scopeRule` 单测，构建期失败而非运行时崩溃）。
-`lib/` 已提交进 git，GitHub 安装无需本机构建。
+输出 `lib/index.js`（host 半部）与 `lib/client.js`（浏览器 bundle）。`lib/` 已提交进 git，GitHub 安装无需本机构建；CI 在干净检出上跑 `npm run build` 后 `git diff --exit-code`，保证提交产物 = 构建产物。
+
+> ⚠️ **`node build-client.cjs` 不是正式构建路径**：它只是沙箱无法跑 tsdown 时的临时产物（协议外壳一致、代码体行为等价，但文本不同）。用它生成的 `lib/client.js` **用完即弃、不可提交**——提交了会让 CI 的 diff 守卫必红。
 
 **改源码后的流程**：
-1. `node build-client.cjs` 重建 `lib/client.js`
+1. `npm run build` 重建 `lib/`
 2. `npm run typecheck` 类型检查
-3. `node tests/scope-rule.test.js` 作用域规则回归
+3. `npm test` 回归（scopeRule + bundle 冒烟）
 4. 提交 `src/` 和 `lib/`（两者都要，GitHub 安装用的是 `lib/`）
 
 ## Install
@@ -67,7 +68,7 @@ GitHub 正式安装（推荐，与仓库同步）：
 dsh plugin --profile web add github:JackJackXu/dsh-whale-skin
 ```
 
-开发态（改源码时）：先 `node build-client.cjs` 重建 `lib/client.js`，然后：
+开发态（改源码时）：先 `npm run build` 重建 `lib/`，然后：
 
 ```bash
 dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-whale-skin"
