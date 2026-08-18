@@ -4,7 +4,8 @@
  * 说明：tsdown 打包 client bundle 时内部 spawn esbuild，在受限沙箱中无法执行；
  * 本脚本按 tsdown.client.ts 的 banner/footer 协议，将 tsc 产出的两个 ESM
  * 模块（index/whale，无外部值依赖）合并为单个 CJS closure 产物，
- * 格式与 tsdown 完全一致：window.__ModuleLoader__.load({ id, factory })。
+ * 协议外壳与 tsdown 一致（window.__ModuleLoader__.load({ id, factory })），
+ * 代码体行为等价——注意产物文本并非逐字节相同。
  *
  * 在正常环境（用户终端）中，`npm run build` 的 tsdown 步骤会生成等价产物。
  */

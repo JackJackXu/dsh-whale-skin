@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-skin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSH web skin: terminal-style layout (mist blue + pixel whale). Colors/fonts follow the user's default theme.",
   "license": "MIT",
   "type": "module",

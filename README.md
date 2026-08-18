@@ -38,7 +38,9 @@ src/
 
 **浏览器端加载链**：DSH 的 `dsh-client-modules` 读取 package.json 的 `dsh.client` 声明 → 加载 `lib/client.js`（bundle）→ 调用 `apply(ctx)` → 注入 `<style>` + 鲸鱼 DOM + 底栏 MutationObserver + 宽度切换按钮。
 
-**固定底栏的实现（重要）**：dsh 的输入卡片（`[data-composer-card]`）随对话流滚动，但工具栏行 + token 统计栏需要钉在底部。CSS `position: sticky` 无法钉住（seat 的父容器在流末尾），所以用 `fixBottomBar()` 把 `.row` 和 dock **物理移入** `#dsh-whale-bottombar`（`[data-phase]` 的普通 flex 子元素，插在滚动区之后），再靠 MutationObserver 在 React 重渲染后重新固定。⚠️ 已知副作用：物理移动含 `Menu` 弹窗的 DOM 会破坏弹窗定位（见 `ISSUES.md`）。
+**固定底栏的实现（重要）**：dsh 的输入卡片（`[data-composer-card]`）随对话流滚动，但工具栏行 + token 统计栏需要钉在底部。CSS `position: sticky` 无法钉住（seat 的父容器在流末尾），所以用 `fixBottomBar()` 把 `.row` 和 dock **物理移入** `#dsh-whale-bottombar`（`[data-phase]` 的普通 flex 子元素，插在滚动区之后），再靠 MutationObserver 在 React 重渲染后重新固定。dock 仅在**有内容**时搬移（无 cost-meter 时空槽不显示空底栏）。
+
+**CSS 作用域**：所有规则经 `scopeRule()` 加 `body[data-skin="whale"]` 前缀，皮肤只在自己激活时生效；逗号选择器逐段加前缀、深色主题规则正确合并属性（`body[data-skin][data-ds-dark-theme]`）。
 
 ## Build
 
@@ -48,13 +50,14 @@ npm run build     # tsc (host) + tsc (client) + tsdown (client bundle)
 ```
 
 输出 `lib/index.js`（host 半部）与 `lib/client.js`（浏览器 bundle）。
-沙箱受限环境可用 `node build-client.cjs` 生成 `lib/client.js`（格式与 tsdown 等价；内含导出残留检查，构建期失败而非运行时崩溃）。
+沙箱受限环境可用 `node build-client.cjs` 生成 `lib/client.js`（协议外壳与 tsdown 一致、代码体行为等价；内含导出残留检查与 `scopeRule` 单测，构建期失败而非运行时崩溃）。
 `lib/` 已提交进 git，GitHub 安装无需本机构建。
 
 **改源码后的流程**：
 1. `node build-client.cjs` 重建 `lib/client.js`
 2. `npm run typecheck` 类型检查
-3. 提交 `src/` 和 `lib/`（两者都要，GitHub 安装用的是 `lib/`）
+3. `node tests/scope-rule.test.js` 作用域规则回归
+4. 提交 `src/` 和 `lib/`（两者都要，GitHub 安装用的是 `lib/`）
 
 ## Install
 
@@ -79,7 +82,8 @@ dsh plugin --profile web add "link:C:/MyMy/my_work/dsh_default/plugins/dsh-whale
 
 ## 已知问题
 
-- 底部工具栏「选择模型 / 选择权限」弹窗透明且点不上（根因+修复方向见 `ISSUES.md`）
+- ~~底部工具栏「选择模型 / 选择权限」弹窗透明且点不上~~ — **已恢复**（回退到底栏稳定版后弹窗正常；历史根因记录在 `ISSUES.md`）
+- 物理搬移 DOM 依赖 dsh 内部结构，dsh 升级前端重构后需回归测试（见 `ISSUES.md`）
 
 ## License
 

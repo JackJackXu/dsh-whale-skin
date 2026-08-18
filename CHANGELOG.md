@@ -2,14 +2,26 @@
 
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased] — 审查中（未发布）
+## [0.1.1] — 2026-08-18
+
+### 修复
+
+- **回退到底栏稳定版**：撤销此前多次失败的底栏弹窗修复尝试（fixed/sticky/body 方案），恢复物理搬移 + 普通 flex 子元素的布局——用户确认过的正常状态；弹窗随之恢复正常
+- **防重复注入**：鲸鱼/宽度按钮注入加 `pending` 防重入 + 终态放弃标记（此前 React 重挂载会反复注入、累积定时器）
+- **observer rAF 节流**：MutationObserver 回调每帧合并一次，流式输出不再高频执行 DOM 查询
+- **CSS 作用域修复**：`scopeRule()` 正确逐段处理逗号选择器、深色主题规则合并属性（此前 `body[data-skin] body[data-ds-dark-theme]` 永不匹配，深色模式时间栏/产物卡背景失效）
+- **dock 空态**：token 统计栏仅在有内容时搬移（无 cost-meter 不显示空底栏）
+- **按钮语义**：宽度切换按钮文案改为动作（切到占满/切到居中）+ `aria-pressed`
+- **assertSelectors 延迟**：选择器契约检查推迟到 SPA 渲染后（首帧执行会全部误报）
 
 ### 变更
 
-- **删除死代码**：`--dsh-whale-bar-width` CSS 变量及 `BAR_WIDE` 常量（从未被消费）
-- **SPA 重挂载恢复**：MutationObserver 现在也重注入鲸鱼和宽度切换按钮（React 重挂载丢 DOM 后自动补回）
-- **build-client.cjs 加固**：`toClosure` 加 ESM 残留检查 + `name`/`apply` 导出断言——构建期失败而非运行时崩溃
-- **文档同步**：README 重写（架构/兼容性/流程）、补 LICENSE（MIT）、ISSUES.md 记录弹窗 bug 根因
+- **CSS 作用域化**：所有规则加 `body[data-skin="whale"]` 前缀，不污染其他插件 UI
+- **选择器契约**：`SELECTORS` 常量表 + 加载时缺失警告
+- **构建协议单一来源**：`bundle-protocol.cjs` 供 build-client 与 tsdown 共用
+- **CI**：GitHub Actions（typecheck + bundle 重建）
+- **测试**：`tests/scope-rule.test.js`（作用域规则 4 用例）
+- **清理**：删未使用的 `dsh-client-ui-theme` peer 依赖
 
 ## [0.1.0] — 2026-08-17
 
