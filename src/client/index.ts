@@ -17,7 +17,6 @@
  *    container lives at the end of the flow, so CSS sticky cannot pin them);
  *  - the user-drawn 1:1 whale sits at the top of the sidebar.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { whaleHtml } from './whale.js'
 import { scopeRule } from './style.js'
 
@@ -480,7 +479,11 @@ export function dispose(): void {
   document.body.removeAttribute('data-skin')
 }
 
-export function apply(ctx: ClientContext): () => void {
+// _ctx is deliberately untyped: the skin never touches the client runtime —
+// it only manipulates document/localStorage. Typing it with the official
+// ClientContext would force CI (which cannot install the private
+// @deepseek-ai workspace packages) to resolve them.
+export function apply(_ctx: unknown): () => void {
   // Mark the skin as active: every TERMINAL_CSS rule is scoped under this
   // attribute so the skin never bleeds into other plugins' UI.
   document.body.setAttribute('data-skin', 'whale')

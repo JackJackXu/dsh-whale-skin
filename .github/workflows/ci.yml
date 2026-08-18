@@ -14,7 +14,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install
+      # --legacy-peer-deps: the peerDependencies are @deepseek-ai workspace
+      # packages (dsh-client-runtime, cordis) that do NOT exist on the public
+      # npm registry — the dsh profile provides them at install time. CI only
+      # needs the devDependencies (typescript/tsdown/lightningcss) to build;
+      # auto-installing the peers would ERESOLVE-fail within seconds.
+      - run: npm install --legacy-peer-deps
       # Type safety + unit tests.
       - run: npm run typecheck
       - run: npm test
