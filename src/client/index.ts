@@ -228,16 +228,25 @@ function fixBottomBar(): void {
 
 function startBottomBarWatch(): void {
   if (observer) return
-  observer = new MutationObserver(() => {
+  // rAF-coalesced callback: streaming output can fire hundreds of mutations
+  // per second, and fixBottomBar+applyWidthMode+re-injects are idempotent
+  // DOM/query work — no point running them more than once per frame.
+  let rafId = 0
+  const run = (): void => {
+    rafId = 0
     fixBottomBar()
     // Re-apply the persisted content-width (the conversation root may not
     // exist when apply() first ran; also catches React remounts).
     applyWidthMode()
     // Re-inject the whale and the width toggle if a React remount dropped
-    // them (both guards on getElementById internally, so this is a no-op
-    // while they are still present).
+    // them (both guard on getElementById/pending internally, so this is a
+    // no-op while they are present or a retry loop is running).
     injectWhale()
     injectWidthToggle()
+  }
+  observer = new MutationObserver(() => {
+    if (rafId !== 0) return
+    rafId = requestAnimationFrame(run)
   })
   observer.observe(document.body, { childList: true, subtree: true })
   fixBottomBar()
@@ -246,8 +255,19 @@ function startBottomBarWatch(): void {
 // Inject the whale BETWEEN the session list (regionArea) and the foot
 // (settings button): the root is a fixed-height column whose foot would be
 // pushed out of view if the whale sat above the logo row.
+//
+// Leak guard: injectWhale / injectWidthToggle are re-invoked from the
+// MutationObserver (React remounts). While the target selector is missing,
+// each call used to build a fresh detached node + a fresh 20s interval —
+// over a long session that accumulates thousands of timers. A module-level
+// `pending` bit makes later calls no-ops; ONE shared 500ms timer drives the
+// retries until the target appears (or a hard cap stops it).
+let whalePending = false
+let togglePending = false
+
 function injectWhale(): void {
   if (document.getElementById('dsh-whale-whale-host')) return
+  if (whalePending) return // a retry loop is already running
   const host = document.createElement('div')
   host.id = 'dsh-whale-whale-host'
   host.className = 'dsh-whale-whale-host'
@@ -257,6 +277,7 @@ function injectWhale(): void {
     const foot = document.querySelector('[class$="_footArea"]')
     if (foot && foot.parentElement) {
       foot.parentElement.insertBefore(host, foot)
+      whalePending = false
       return true
     }
     return false
@@ -264,10 +285,14 @@ function injectWhale(): void {
 
   if (!tryInject()) {
     // SPA renders asynchronously: watch until the foot appears.
+    whalePending = true
     let tries = 0
     const iv = setInterval(() => {
       tries++
-      if (tryInject() || tries > 40) clearInterval(iv)
+      if (tryInject() || tries > 40) {
+        whalePending = false
+        clearInterval(iv)
+      }
     }, 500)
   }
 }
@@ -302,6 +327,7 @@ function applyWidthMode(): void {
 
 function injectWidthToggle(): void {
   if (document.getElementById('dsh-whale-width-toggle')) return
+  if (togglePending) return // a retry loop is already running
   const make = (): boolean => {
     // Top-right header utilities, next to the session-log download button.
     const utils = document.querySelector('[class$="_headerUtilities"]')
@@ -317,13 +343,18 @@ function injectWidthToggle(): void {
       applyWidthMode()
     })
     utils.appendChild(btn)
+    togglePending = false
     return true
   }
   if (!make()) {
+    togglePending = true
     let tries = 0
     const iv = setInterval(() => {
       tries++
-      if (make() || tries > 40) clearInterval(iv)
+      if (make() || tries > 40) {
+        togglePending = false
+        clearInterval(iv)
+      }
     }, 500)
   }
 }
