@@ -10,6 +10,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { banner, footer, intro } = require('./bundle-protocol.cjs');
 
 const ROOT = __dirname;
 const CLIENT = path.join(ROOT, 'lib', 'client');
@@ -54,16 +55,14 @@ for (const required of ['name', 'apply']) {
   }
 }
 
-const bundle = `window.__ModuleLoader__.load({ id: ${JSON.stringify(pkg.name)}, factory: (require) => {
-var module = { exports: {} };
-var exports = module.exports;
+const bundle = `${banner(pkg.name)}
+${intro}
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
 ${[whale, index].join('\n\n')}
 
 module.exports = { name, apply };
-return module.exports;
-} });
+${footer}
 `;
 
 fs.writeFileSync(OUT, bundle);

@@ -22,6 +22,31 @@ import { whaleHtml } from './whale.js'
 
 export const name = 'whale-skin'
 
+// ── DOM contract (dsh internal structure) ────────────────────────────────
+// Centralized selectors so a dsh refactor breaks in ONE obvious place with a
+// console warning instead of silently degrading ("looks fine, feature dead").
+const SELECTORS = {
+  phase: '[data-phase]',
+  scroll: '[data-conversation-scroll]',
+  card: '[data-composer-card]',
+  seat: '[data-composer-seat]',
+  row: '[data-composer-card] > [class$="_row"]',
+  dock: '[data-slot="conversation.composer.dock"]',
+  footArea: '[class$="_footArea"]',
+  headerUtilities: '[class$="_headerUtilities"]',
+} as const
+
+// Smoke check: log a structured warning for every contract selector that is
+// missing when the skin loads. A missing selector usually means dsh's UI
+// structure changed; the skin may still work partially, so warn loudly.
+function assertSelectors(): void {
+  for (const [key, sel] of Object.entries(SELECTORS)) {
+    if (!document.querySelector(sel)) {
+      console.warn(`[dsh-whale-skin] contract selector missing: ${key} = ${sel} (dsh UI changed?)`)
+    }
+  }
+}
+
 /** Refined terminal element styles injected via a <style> tag. */
 // Style note: the skin is aggressively square (the very first rule zeroes
 // every border-radius), so individual rules below intentionally never set
@@ -108,12 +133,6 @@ const TERMINAL_CSS = [
   // the content width with nowrap + ellipsis, so long lines get cut; let it
   // wrap instead.
   '[data-slot="conversation.composer.dock"] > div { max-width: var(--dsh-chat-content-width) !important; padding: 0 !important; white-space: normal !important; text-overflow: clip !important; }',
-  // ── links / brand accents ────────────────────────────────────────────────
-  'a { color: #7DA1DE !important; }',
-  // ── thin flat scrollbar ──────────────────────────────────────────────────
-  '*::-webkit-scrollbar { width: 10px; height: 10px; }',
-  '*::-webkit-scrollbar-thumb { background: #343945; border: 2px solid #22262E; }',
-  '*::-webkit-scrollbar-thumb:hover { background: #454D59; }',
   // ── whale host (above the sidebar foot, left-aligned) ────────────────────
   '.dsh-whale-whale { display: inline-block; line-height: 0; opacity: 0.92; }',
   '.dsh-whale-whale-host { display: flex; justify-content: flex-start; padding: 12px 0 6px 12px; }',
@@ -189,7 +208,20 @@ const TERMINAL_CSS = [
   // summary shrink (ellipsis) and ensure the expanded body wraps.
   '[data-variant="think"] [class$="_summary"] { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
   '[data-variant="think"] [class$="_thinkBody"] { overflow-wrap: anywhere; }',
-].join('\n')
+  // ── scrollbars: thin flat ────────────────────────────────────────────────
+  // Scoped to the conversation surface so other plugins' scrollbars (settings
+  // panels, modals) keep their themed look.
+  '[data-conversation-scroll]::-webkit-scrollbar { width: 10px; height: 10px; }',
+  '[data-conversation-scroll]::-webkit-scrollbar-thumb { background: #343945; border: 2px solid #22262E; }',
+  '[data-conversation-scroll]::-webkit-scrollbar-thumb:hover { background: #454D59; }',
+  // ── links: brand accent (scoped: only inside the conversation surface) ───
+  '[data-conversation-scroll] a, [data-composer-card] a { color: #7DA1DE !important; }',
+]
+// Every rule is scoped under body[data-skin="whale"] so the skin only applies
+// while it is the active skin and never bleeds into other plugins' UI. The
+// attribute is set by apply() on load.
+  .map(rule => 'body[data-skin="whale"] ' + rule)
+  .join('\n')
 
 function injectStyle(): void {
   if (document.getElementById('dsh-whale-skin-style')) return
@@ -207,8 +239,8 @@ let bottomBar: HTMLElement | null = null
 let observer: MutationObserver | null = null
 
 function fixBottomBar(): void {
-  const root = document.querySelector('[data-phase]')
-  const scroll = document.querySelector('[data-conversation-scroll]')
+  const root = document.querySelector(SELECTORS.phase)
+  const scroll = document.querySelector(SELECTORS.scroll)
   if (!root || !scroll) return
   if (!bottomBar || !document.body.contains(bottomBar)) {
     bottomBar = document.createElement('div')
@@ -218,11 +250,11 @@ function fixBottomBar(): void {
     // covered by the bar.
     scroll.insertAdjacentElement('afterend', bottomBar)
   }
-  const seat = document.querySelector('[data-composer-seat]')
+  const seat = document.querySelector(SELECTORS.seat)
   if (!seat) return
-  const row = seat.querySelector('[data-composer-card] > [class$="_row"]')
+  const row = seat.querySelector(SELECTORS.row)
   if (row && row.parentNode !== bottomBar) bottomBar.insertBefore(row, bottomBar.firstChild)
-  const dock = seat.querySelector('[data-slot="conversation.composer.dock"]')
+  const dock = seat.querySelector(SELECTORS.dock)
   if (dock && dock.parentNode !== bottomBar) bottomBar.appendChild(dock)
 }
 
@@ -274,7 +306,7 @@ function injectWhale(): void {
   host.innerHTML = whaleHtml(5) // 16 cols x 5px = 80px wide
 
   const tryInject = (): boolean => {
-    const foot = document.querySelector('[class$="_footArea"]')
+    const foot = document.querySelector(SELECTORS.footArea)
     if (foot && foot.parentElement) {
       foot.parentElement.insertBefore(host, foot)
       whalePending = false
@@ -317,7 +349,7 @@ function getStoredWidthMode(): string {
 }
 
 function applyWidthMode(): void {
-  const root = document.querySelector('[data-phase]')
+  const root = document.querySelector(SELECTORS.phase)
   if (!root) return
   const mode = getStoredWidthMode()
   const el = root as HTMLElement
@@ -330,7 +362,7 @@ function injectWidthToggle(): void {
   if (togglePending) return // a retry loop is already running
   const make = (): boolean => {
     // Top-right header utilities, next to the session-log download button.
-    const utils = document.querySelector('[class$="_headerUtilities"]')
+    const utils = document.querySelector(SELECTORS.headerUtilities)
     if (!utils) return false
     const btn = document.createElement('button')
     btn.id = 'dsh-whale-width-toggle'
@@ -360,6 +392,11 @@ function injectWidthToggle(): void {
 }
 
 export function apply(ctx: ClientContext): void {
+  // Mark the skin as active: every TERMINAL_CSS rule is scoped under this
+  // attribute so the skin never bleeds into other plugins' UI.
+  document.body.setAttribute('data-skin', 'whale')
+  // Smoke-check the dsh DOM contract (missing selector = dsh UI changed).
+  assertSelectors()
   // 1. Inject terminal element styles and the pixel whale.
   injectStyle()
   injectWhale()

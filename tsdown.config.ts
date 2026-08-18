@@ -11,20 +11,13 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { basename, dirname, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { transform } from 'lightningcss'
 import { defineConfig, type UserConfig } from 'tsdown'
-
-/** Platform seed entries the browser module table answers (external). */
-const PLATFORM_MODULES = [
-  'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@deepseek-ai/cordis',
-  '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
-  '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-ui-attachment',
-  '@deepseek-ai/dsh-client-schema-form',
-]
+// Single source of truth for the bundle protocol, shared with build-client.cjs.
+const { banner, footer, intro, PLATFORM_MODULES } = createRequire(import.meta.url)('./bundle-protocol.cjs')
 
 /** Runtime store engine: documented exemption, external at runtime. */
 const RUNTIME_STORE_EXEMPTION = '@deepseek-ai/dsh-client-runtime/client'
@@ -119,9 +112,9 @@ const config: UserConfig = {
   }],
   outputOptions: {
     entryFileNames: 'client.js',
-    banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(PLUGIN_ID)}, factory: (require) => {`,
-    footer: 'return module.exports; } });',
-    intro: 'var module = { exports: {} }; var exports = module.exports;',
+    banner: banner(PLUGIN_ID),
+    footer,
+    intro,
   },
 }
 
