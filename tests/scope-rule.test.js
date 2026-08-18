@@ -1,33 +1,29 @@
-// scopeRule 逻辑验证（与 src/client/index.ts 中的实现一致）
-function scopeRule(rule) {
-  const brace = rule.indexOf('{')
-  const selectors = rule.slice(0, brace)
-  const body = rule.slice(brace)
-  const scoped = selectors
-    .split(',')
-    .map(part => part.trim())
-    .map(part => {
-      if (part.startsWith('body[')) {
-        // 已是 body[data-skin] 前缀的直接保留（防重复）；body[data-ds-dark-theme] X
-        // 合并成 body[data-skin="whale"][data-ds-dark-theme] X
-        if (part.startsWith('body[data-skin="whale"]')) return part
-        return part.replace(/^body\[/, 'body[data-skin="whale"][')
-      }
-      return 'body[data-skin="whale"] ' + part
-    })
-    .join(', ')
-  return scoped + ' ' + body
-}
+// scopeRule 单元测试 — import 源码中的真实现（style.ts 编译产物），
+// 避免"测试复制实现"的假绿。运行：npm test（或 node tests/scope-rule.test.js）
+
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const require = createRequire(import.meta.url)
+const { scopeRule } = require(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'client', 'style.js'))
 
 const cases = [
-  ['深色规则', 'body[data-ds-dark-theme] [data-turn-tail] { background: #fff !important; }',
-    'body[data-skin="whale"][data-ds-dark-theme] [data-turn-tail] { background: #fff !important; }'],
+  // 深色规则：body[data-ds-dark-theme] X -> body[data-skin][data-ds-dark-theme] X
+  ['深色规则', 'body[data-ds-dark-theme] [data-turn-tail] { background: rgba(255,255,255,.14) !important; }',
+    'body[data-skin="whale"][data-ds-dark-theme] [data-turn-tail] { background: rgba(255,255,255,.14) !important; }'],
+  // 顶层逗号选择器：每段都要前缀
   ['逗号选择器', '*, *::before, *::after { border-radius: 0 !important; }',
     'body[data-skin="whale"] *, body[data-skin="whale"] *::before, body[data-skin="whale"] *::after { border-radius: 0 !important; }'],
+  // 普通规则
   ['普通规则', '[data-conversation-scroll] a { color: #7DA1DE !important; }',
     'body[data-skin="whale"] [data-conversation-scroll] a { color: #7DA1DE !important; }'],
+  // 已是皮肤前缀：幂等（不重复加前缀）
   ['已是皮肤前缀', 'body[data-skin="whale"] [data-phase] { }',
     'body[data-skin="whale"] [data-phase] { }'],
+  // 嵌套逗号（:is()）：整组是一个段，不能拆开
+  ['嵌套 :is() 逗号', '[data-time-hover-root] :is([class$="_timeStart"], [class$="_timeEnd"]) { opacity: 1 !important; }',
+    'body[data-skin="whale"] [data-time-hover-root] :is([class$="_timeStart"], [class$="_timeEnd"]) { opacity: 1 !important; }'],
 ]
 
 let pass = 0

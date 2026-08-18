@@ -15,7 +15,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      # Type safety + bundle rebuild must both stay green.
+      # Type safety + unit tests.
       - run: npm run typecheck
-      - run: node build-client.cjs
+      - run: npm test
+      # AUTHORITATIVE build (tsc + tsdown), then assert the committed lib/
+      # matches it exactly: `git diff --exit-code` fails if the build left any
+      # uncommitted change (a stale bundle, a stray .map). This is the guard
+      # against "source and committed bundle drift apart".
+      - run: npm run build
       - run: node --check lib/client.js
+      - run: git diff --exit-code

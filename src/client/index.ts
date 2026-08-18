@@ -19,6 +19,7 @@
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import { whaleHtml } from './whale.js'
+import { scopeRule } from './style.js'
 
 export const name = 'whale-skin'
 
@@ -224,36 +225,10 @@ const TERMINAL_CSS = [
 ]
 // Every rule is scoped under body[data-skin="whale"] so the skin only applies
 // while it is the active skin and never bleeds into other plugins' UI. The
-// attribute is set by apply() on load.
+// attribute is set by apply() on load. scopeRule/splitTopLevel live in
+// style.ts (pure functions, unit-tested).
   .map(scopeRule)
   .join('\n')
-
-// Scope ONE css rule under body[data-skin="whale"]. Two pitfalls handled:
-//  1. Top-level commas split selector lists — every segment gets the prefix,
-//     not just the first (`*, *::before, *::after` must scope all three).
-//  2. Rules already gated on body[...] (dark theme: `body[data-ds-dark-theme]
-//     X`) must become `body[data-skin="whale"][data-ds-dark-theme] X`, never
-//     `body[data-skin] body[data-ds-dark-theme]` (body cannot nest — that
-//     selector can never match).
-function scopeRule(rule: string): string {
-  const brace = rule.indexOf('{')
-  const selectors = rule.slice(0, brace)
-  const body = rule.slice(brace)
-  const scoped = selectors
-    .split(',')
-    .map(part => part.trim())
-    .map(part => {
-      if (part.startsWith('body[')) {
-        // 已是 body[data-skin="whale"] 前缀的直接保留（防重复注入时再次加前缀）；
-        // body[data-ds-dark-theme] X 合并成 body[data-skin="whale"][data-ds-dark-theme] X
-        if (part.startsWith('body[data-skin="whale"]')) return part
-        return part.replace(/^body\[/, 'body[data-skin="whale"][')
-      }
-      return 'body[data-skin="whale"] ' + part
-    })
-    .join(', ')
-  return scoped + ' ' + body
-}
 
 function injectStyle(): void {
   if (document.getElementById('dsh-whale-skin-style')) return
@@ -359,18 +334,22 @@ function injectWhale(): void {
   }
 
   if (!tryInject()) {
-    // SPA renders asynchronously: watch until the foot appears. After the cap
-    // the target is likely gone for good; stop retrying (no more 20s cycles)
-    // until the whale node actually appears (cleared on a successful inject).
+    // SPA renders asynchronously: watch until the foot appears. After the fast
+    // retry cap (20s), slow down to 5s so a slow cold start (large session,
+    // slow disk) still gets the whale — never a permanent dead-end.
     whalePending = true
     let tries = 0
-    const iv = setInterval(() => {
+    const fast = setInterval(() => {
       tries++
-      if (tryInject()) { clearInterval(iv); return }
+      if (tryInject()) { clearInterval(fast); return }
       if (tries >= 40) {
+        clearInterval(fast)
         whalePending = false
         whaleGaveUp = true
-        clearInterval(iv)
+        // Slow re-arm: keep probing every 5s; when the target appears, inject.
+        const slow = setInterval(() => {
+          if (tryInject()) clearInterval(slow)
+        }, 5000)
       }
     }, 500)
   }
@@ -386,13 +365,38 @@ function injectWhale(): void {
 // The bottom bar's inner column reuses --dsh-chat-content-width (its 32px
 // side padding + centered max-width lands flush with the message column).
 // Persisted in localStorage; flipped on the conversation root ([data-phase]).
-const WIDTH_KEY = 'dsh-whale-content-width'
+const WIDTH_KEY = 'dsh-whale-content-width:v1'
+const WIDTH_KEY_LEGACY = 'dsh-whale-content-width' // pre-v1 key, migrated once
 const WIDTH_CENTER = '748px'
 const WIDTH_WIDE = '100%' // column: fill the scroll content area
 const INPUT_WIDE = 'calc(100% - 32px)' // card: fill scroll area minus root pads
 
+// Memory cache of the stored width mode: the observer runs every frame during
+// streaming output, and reading localStorage on every frame is needless I/O.
+// Only the toggle click writes through to localStorage; applyWidthMode reads
+// the cache.
+let widthModeCache: string | null = null
+
 function getStoredWidthMode(): string {
-  try { return localStorage.getItem(WIDTH_KEY) === 'wide' ? 'wide' : 'center' } catch { return 'center' }
+  if (widthModeCache !== null) return widthModeCache
+  try {
+    let mode = localStorage.getItem(WIDTH_KEY)
+    if (mode === null) {
+      // Migrate the pre-v1 key once, then write the versioned one.
+      const legacy = localStorage.getItem(WIDTH_KEY_LEGACY)
+      if (legacy === 'wide' || legacy === 'center') {
+        mode = legacy
+        localStorage.setItem(WIDTH_KEY, mode)
+      }
+    }
+    widthModeCache = mode === 'wide' ? 'wide' : 'center'
+  } catch { widthModeCache = 'center' }
+  return widthModeCache
+}
+
+function setStoredWidthMode(mode: string): void {
+  widthModeCache = mode
+  try { localStorage.setItem(WIDTH_KEY, mode) } catch { /* ignore */ }
 }
 
 function applyWidthMode(): void {
@@ -419,7 +423,7 @@ function injectWidthToggle(): void {
     btn.setAttribute('aria-pressed', getStoredWidthMode() === 'wide' ? 'true' : 'false')
     btn.addEventListener('click', () => {
       const next = getStoredWidthMode() === 'wide' ? 'center' : 'wide'
-      try { localStorage.setItem(WIDTH_KEY, next) } catch { /* ignore */ }
+      setStoredWidthMode(next)
       btn.textContent = next === 'wide' ? '居中' : '占满'
       btn.setAttribute('aria-pressed', next === 'wide' ? 'true' : 'false')
       applyWidthMode()
@@ -439,6 +443,10 @@ function injectWidthToggle(): void {
         togglePending = false
         toggleGaveUp = true
         clearInterval(iv)
+        // Slow re-arm for slow cold starts: keep probing every 5s.
+        const slow = setInterval(() => {
+          if (make()) clearInterval(slow)
+        }, 5000)
       }
     }, 500)
   }
