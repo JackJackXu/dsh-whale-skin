@@ -1,8 +1,7 @@
 /**
  * bundle-protocol.cjs — 客户端 bundle 协议的单一来源（banner/footer/id 规则）。
  *
- * tsdown.config.ts（权威构建）与 build-client.cjs（受限沙箱等价构建）共用
- * 这份常量，避免两处各写一份导致漂移：改协议只改这里。
+ * tsdown.config.ts（唯一权威构建）使用这份常量：改协议只改这里。
  */
 'use strict';
 

@@ -16,7 +16,7 @@ import { basename, dirname, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { transform } from 'lightningcss'
 import { defineConfig, type UserConfig } from 'tsdown'
-// Single source of truth for the bundle protocol, shared with build-client.cjs.
+// Single source of truth for the bundle protocol (banner/footer/intro).
 const { banner, footer, intro, PLATFORM_MODULES } = createRequire(import.meta.url)('./bundle-protocol.cjs')
 
 /** Runtime store engine: documented exemption, external at runtime. */

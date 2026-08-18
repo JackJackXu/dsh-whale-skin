@@ -52,8 +52,6 @@ npm test          # scopeRule 单测 + bundle 冒烟（加载并执行 lib/clien
 
 输出 `lib/index.js`（host 半部）与 `lib/client.js`（浏览器 bundle）。`lib/` 已提交进 git，GitHub 安装无需本机构建；CI 在干净检出上跑 `npm run build` 后 `git diff --exit-code`，保证提交产物 = 构建产物。
 
-> ⚠️ **`node build-client.cjs` 不是正式构建路径**：它只是沙箱无法跑 tsdown 时的临时产物（协议外壳一致、代码体行为等价，但文本不同）。用它生成的 `lib/client.js` **用完即弃、不可提交**——提交了会让 CI 的 diff 守卫必红。
-
 **改源码后的流程**：
 1. `npm run build` 重建 `lib/`
 2. `npm run typecheck` 类型检查
