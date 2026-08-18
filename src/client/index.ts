@@ -220,8 +220,35 @@ const TERMINAL_CSS = [
 // Every rule is scoped under body[data-skin="whale"] so the skin only applies
 // while it is the active skin and never bleeds into other plugins' UI. The
 // attribute is set by apply() on load.
-  .map(rule => 'body[data-skin="whale"] ' + rule)
+  .map(scopeRule)
   .join('\n')
+
+// Scope ONE css rule under body[data-skin="whale"]. Two pitfalls handled:
+//  1. Top-level commas split selector lists — every segment gets the prefix,
+//     not just the first (`*, *::before, *::after` must scope all three).
+//  2. Rules already gated on body[...] (dark theme: `body[data-ds-dark-theme]
+//     X`) must become `body[data-skin="whale"][data-ds-dark-theme] X`, never
+//     `body[data-skin] body[data-ds-dark-theme]` (body cannot nest — that
+//     selector can never match).
+function scopeRule(rule: string): string {
+  const brace = rule.indexOf('{')
+  const selectors = rule.slice(0, brace)
+  const body = rule.slice(brace)
+  const scoped = selectors
+    .split(',')
+    .map(part => part.trim())
+    .map(part => {
+      if (part.startsWith('body[')) {
+        // 已是 body[data-skin="whale"] 前缀的直接保留（防重复注入时再次加前缀）；
+        // body[data-ds-dark-theme] X 合并成 body[data-skin="whale"][data-ds-dark-theme] X
+        if (part.startsWith('body[data-skin="whale"]')) return part
+        return part.replace(/^body\[/, 'body[data-skin="whale"][')
+      }
+      return 'body[data-skin="whale"] ' + part
+    })
+    .join(', ')
+  return scoped + ' ' + body
+}
 
 function injectStyle(): void {
   if (document.getElementById('dsh-whale-skin-style')) return
